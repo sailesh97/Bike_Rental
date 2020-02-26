@@ -1,0 +1,902 @@
+> # # Clean the Environment
+> # rm(list = ls())
+> # 
+> # # Set Working Directory
+> setwd("G:/Project/Bike-Sharing-Dataset")
+> 
+> # Load the libraries
+> libraries = c("plyr","dplyr","ggplot2","rpart","DMwR","randomForest","usdm","corrgram","DataCombine","scales","corrplot","dummies","caTools","grid")
+> 
+> lapply(X = libraries,require, character.only = TRUE)
+[[1]]
+[1] TRUE
+
+[[2]]
+[1] TRUE
+
+[[3]]
+[1] TRUE
+
+[[4]]
+[1] TRUE
+
+[[5]]
+[1] TRUE
+
+[[6]]
+[1] TRUE
+
+[[7]]
+[1] TRUE
+
+[[8]]
+[1] TRUE
+
+[[9]]
+[1] TRUE
+
+[[10]]
+[1] TRUE
+
+[[11]]
+[1] TRUE
+
+[[12]]
+[1] TRUE
+
+[[13]]
+[1] TRUE
+
+[[14]]
+[1] TRUE
+
+> 
+> rm(libraries)
+> 
+> # Read the csv file
+> 
+> bike_sharing_train = read.csv(file = "day.csv", header = T, sep=",",na.strings = c(" ", "", "NA"))
+> 
+> 
+> ############################## Exploratory Data Analysis ##################
+> 
+> # Shape of our dataset
+> dim(bike_sharing_train)
+[1] 731  16
+> 
+> # Column/Variable Names
+> names(bike_sharing_train)
+ [1] "instant"    "dteday"     "season"     "yr"         "mnth"       "holiday"    "weekday"    "workingday" "weathersit"
+[10] "temp"       "atemp"      "hum"        "windspeed"  "casual"     "registered" "cnt"       
+> 
+> # Showing First few rows of dataset
+> head(bike_sharing_train,5)
+  instant     dteday season yr mnth holiday weekday workingday weathersit     temp    atemp      hum windspeed casual
+1       1 2011-01-01      1  0    1       0       6          0          2 0.344167 0.363625 0.805833  0.160446    331
+2       2 2011-01-02      1  0    1       0       0          0          2 0.363478 0.353739 0.696087  0.248539    131
+3       3 2011-01-03      1  0    1       0       1          1          1 0.196364 0.189405 0.437273  0.248309    120
+4       4 2011-01-04      1  0    1       0       2          1          1 0.200000 0.212122 0.590435  0.160296    108
+5       5 2011-01-05      1  0    1       0       3          1          1 0.226957 0.229270 0.436957  0.186900     82
+  registered  cnt
+1        654  985
+2        670  801
+3       1229 1349
+4       1454 1562
+5       1518 1600
+> 
+> # Basic info about dataset
+> str(bike_sharing_train)
+'data.frame':	731 obs. of  16 variables:
+ $ instant   : int  1 2 3 4 5 6 7 8 9 10 ...
+ $ dteday    : Factor w/ 731 levels "2011-01-01","2011-01-02",..: 1 2 3 4 5 6 7 8 9 10 ...
+ $ season    : int  1 1 1 1 1 1 1 1 1 1 ...
+ $ yr        : int  0 0 0 0 0 0 0 0 0 0 ...
+ $ mnth      : int  1 1 1 1 1 1 1 1 1 1 ...
+ $ holiday   : int  0 0 0 0 0 0 0 0 0 0 ...
+ $ weekday   : int  6 0 1 2 3 4 5 6 0 1 ...
+ $ workingday: int  0 0 1 1 1 1 1 0 0 1 ...
+ $ weathersit: int  2 2 1 1 1 1 2 2 1 1 ...
+ $ temp      : num  0.344 0.363 0.196 0.2 0.227 ...
+ $ atemp     : num  0.364 0.354 0.189 0.212 0.229 ...
+ $ hum       : num  0.806 0.696 0.437 0.59 0.437 ...
+ $ windspeed : num  0.16 0.249 0.248 0.16 0.187 ...
+ $ casual    : int  331 131 120 108 82 88 148 68 54 41 ...
+ $ registered: int  654 670 1229 1454 1518 1518 1362 891 768 1280 ...
+ $ cnt       : int  985 801 1349 1562 1600 1606 1510 959 822 1321 ...
+> 
+> # Checking the data types of the variables
+> sapply(bike_sharing_train,class)
+   instant     dteday     season         yr       mnth    holiday    weekday workingday weathersit       temp      atemp 
+ "integer"   "factor"  "integer"  "integer"  "integer"  "integer"  "integer"  "integer"  "integer"  "numeric"  "numeric" 
+       hum  windspeed     casual registered        cnt 
+ "numeric"  "numeric"  "integer"  "integer"  "integer" 
+> 
+> # Converting the varibales to it's proper data type
+> categorical <- c('season','yr','mnth','holiday','weekday','workingday','weathersit')
+> 
+> for(i in categorical){
++   bike_sharing_train[,i] = as.factor(bike_sharing_train[,i])
++ }
+> 
+> # After Convertion
+> str(bike_sharing_train)
+'data.frame':	731 obs. of  16 variables:
+ $ instant   : int  1 2 3 4 5 6 7 8 9 10 ...
+ $ dteday    : Factor w/ 731 levels "2011-01-01","2011-01-02",..: 1 2 3 4 5 6 7 8 9 10 ...
+ $ season    : Factor w/ 4 levels "1","2","3","4": 1 1 1 1 1 1 1 1 1 1 ...
+ $ yr        : Factor w/ 2 levels "0","1": 1 1 1 1 1 1 1 1 1 1 ...
+ $ mnth      : Factor w/ 12 levels "1","2","3","4",..: 1 1 1 1 1 1 1 1 1 1 ...
+ $ holiday   : Factor w/ 2 levels "0","1": 1 1 1 1 1 1 1 1 1 1 ...
+ $ weekday   : Factor w/ 7 levels "0","1","2","3",..: 7 1 2 3 4 5 6 7 1 2 ...
+ $ workingday: Factor w/ 2 levels "0","1": 1 1 2 2 2 2 2 1 1 2 ...
+ $ weathersit: Factor w/ 3 levels "1","2","3": 2 2 1 1 1 1 2 2 1 1 ...
+ $ temp      : num  0.344 0.363 0.196 0.2 0.227 ...
+ $ atemp     : num  0.364 0.354 0.189 0.212 0.229 ...
+ $ hum       : num  0.806 0.696 0.437 0.59 0.437 ...
+ $ windspeed : num  0.16 0.249 0.248 0.16 0.187 ...
+ $ casual    : int  331 131 120 108 82 88 148 68 54 41 ...
+ $ registered: int  654 670 1229 1454 1518 1518 1362 891 768 1280 ...
+ $ cnt       : int  985 801 1349 1562 1600 1606 1510 959 822 1321 ...
+> 
+> # Count of each categorical variable in our data is as follows
+> sapply(bike_sharing_train[,categorical],table)
+$season
+
+  1   2   3   4 
+181 184 188 178 
+
+$yr
+
+  0   1 
+365 366 
+
+$mnth
+
+ 1  2  3  4  5  6  7  8  9 10 11 12 
+62 57 62 60 62 60 62 62 60 62 60 62 
+
+$holiday
+
+  0   1 
+710  21 
+
+$weekday
+
+  0   1   2   3   4   5   6 
+105 105 104 104 104 104 105 
+
+$workingday
+
+  0   1 
+231 500 
+
+$weathersit
+
+  1   2   3 
+463 247  21 
+
+> 
+> # Count of each category of a categorical variable
+> check_count_of_category <- function(cat){
++   
++   ggplot(bike_sharing_train, aes_string(x = bike_sharing_train[,cat], fill = bike_sharing_train[,cat])) +
++     geom_bar(stat="count") + theme_bw() +
++     xlab(cat) + ylab('Count') +
++     ggtitle(paste("Count of each category of ",cat," variable in 2years")) +  theme(text=element_text(size=10))
++   
++ }
+> 
+> all_bar_plot <- lapply(categorical,check_count_of_category)
+> 
+> gridExtra::grid.arrange(all_bar_plot[[1]],all_bar_plot[[2]],all_bar_plot[[3]],all_bar_plot[[4]],
++                         all_bar_plot[[5]],all_bar_plot[[6]],all_bar_plot[[7]],ncol=3,nrow=3,
++                         top=textGrob("Count of each category in Categorical Variables in our data",gp=gpar(fontsize=22,font=8)))
+> 
+> ############################## Univariate & Bivariate Analysis  ##################
+> 
+> 
+> numeric <- c('temp','atemp','hum','windspeed','casual','registered','cnt')
+> 
+> # Descriptive statistics about the numeric columns
+> summary(bike_sharing_train[,numeric])
+      temp             atemp              hum           windspeed           casual         registered        cnt      
+ Min.   :0.05913   Min.   :0.07907   Min.   :0.0000   Min.   :0.02239   Min.   :   2.0   Min.   :  20   Min.   :  22  
+ 1st Qu.:0.33708   1st Qu.:0.33784   1st Qu.:0.5200   1st Qu.:0.13495   1st Qu.: 315.5   1st Qu.:2497   1st Qu.:3152  
+ Median :0.49833   Median :0.48673   Median :0.6267   Median :0.18097   Median : 713.0   Median :3662   Median :4548  
+ Mean   :0.49538   Mean   :0.47435   Mean   :0.6279   Mean   :0.19049   Mean   : 848.2   Mean   :3656   Mean   :4504  
+ 3rd Qu.:0.65542   3rd Qu.:0.60860   3rd Qu.:0.7302   3rd Qu.:0.23321   3rd Qu.:1096.0   3rd Qu.:4776   3rd Qu.:5956  
+ Max.   :0.86167   Max.   :0.84090   Max.   :0.9725   Max.   :0.50746   Max.   :3410.0   Max.   :6946   Max.   :8714  
+> 
+> 
+> # Univariate analysis of numerical variables
+> ############### Distribution of temp variable ###################
+> 
+> ggplot(data = bike_sharing_train, aes(x=temp)) + 
++   geom_histogram(aes(y=..density..),
++                  binwidth=.04,
++                  colour="black", fill="white") +
++   geom_density(alpha=.2, fill="#FF6666") +
++   ggtitle('Distribution of Temperature Variable') +
++   theme(plot.title = element_text(hjust = 0.5,size=22))
+> 
+> ############### Distribution of atemp variable ###################
+> 
+> ggplot(data = bike_sharing_train, aes(x=atemp)) + 
++   geom_histogram(aes(y=..density..),      
++                  binwidth=.04,
++                  colour="black", fill="white") +
++   geom_density(alpha=.2, fill="#FF6666") +
++   ggtitle('Distribution of atemp Variable') +
++   theme(plot.title = element_text(hjust = 0.5,size=22))
+> 
+> ############### Distribution of humidity variable ###################
+> 
+> ggplot(data = bike_sharing_train, aes(x=hum)) + 
++   geom_histogram(aes(y=..density..),      
++                  binwidth=.04,
++                  colour="black", fill="white") +
++   geom_density(alpha=.2, fill="#FF6666")  +
++   ggtitle('Distribution of Humidity Variable') +
++   theme(plot.title = element_text(hjust = 0.5,size=22))
+> 
+> 
+> 
+> ############### Distribution of windspeed variable ###################
+> 
+> ggplot(data = bike_sharing_train, aes(x=windspeed)) + 
++   geom_histogram(aes(y=..density..),      
++                  binwidth=.04,
++                  colour="black", fill="white") +
++   geom_density(alpha=.2, fill="#FF6666") +
++   ggtitle('Distribution of Windspeed Variable') +
++   theme(plot.title = element_text(hjust = 0.5,size=22))
+> 
+> 
+> # Bivariate analysis of numerical variables
+> # Pair plot
+> pairs(bike_sharing_train[,10:16])
+> 
+> # Keep on adding the unwanted variables (that we will get by applying different techniques) to remove list and 
+> # will finally we will remove from our dataset
+> remove = list("instant","dteday")
+> head(bike_sharing_train,2)
+  instant     dteday season yr mnth holiday weekday workingday weathersit     temp    atemp      hum windspeed casual
+1       1 2011-01-01      1  0    1       0       6          0          2 0.344167 0.363625 0.805833  0.160446    331
+2       2 2011-01-02      1  0    1       0       0          0          2 0.363478 0.353739 0.696087  0.248539    131
+  registered cnt
+1        654 985
+2        670 801
+> 
+> ############################ Missing Value Analysis ###############
+> 
+> print("############################ Missing Value Analysis ###############")
+[1] "############################ Missing Value Analysis ###############"
+> missing_values <- sapply(bike_sharing_train, function(x){sum(is.na(x))})
+> print(missing_values)
+   instant     dteday     season         yr       mnth    holiday    weekday workingday weathersit       temp      atemp 
+         0          0          0          0          0          0          0          0          0          0          0 
+       hum  windspeed     casual registered        cnt 
+         0          0          0          0          0 
+> 
+> print("No missing value found")
+[1] "No missing value found"
+> 
+> ############################Outlier Analysis####################
+> print("############################ Outlier Analysis ###############")
+[1] "############################ Outlier Analysis ###############"
+> 
+> names(bike_sharing_train)
+ [1] "instant"    "dteday"     "season"     "yr"         "mnth"       "holiday"    "weekday"    "workingday" "weathersit"
+[10] "temp"       "atemp"      "hum"        "windspeed"  "casual"     "registered" "cnt"       
+> 
+> n_names = colnames(bike_sharing_train[,c("temp","atemp","windspeed","hum")])
+> 
+> for (i in 1:length(n_names))
++ {
++   assign(paste0("gn",i), ggplot(aes_string(y = (n_names[i])), data = subset(bike_sharing_train))+
++            stat_boxplot(geom = "errorbar", width =1) +
++            geom_boxplot(outlier.colour="red", fill = "blue" ,outlier.shape=18,
++                         outlier.size=1, notch=FALSE) +
++            theme(legend.position="bottom")+
++            labs(y=n_names[i],x="cnt")+
++            ggtitle(paste("Box plot of ",n_names[i])))
++ }
+> gridExtra::grid.arrange(gn1,gn2,gn3,gn4,ncol=4,top="Checking outliers in numerical variables")
+> 
+> print("Outliers found in windspeed and humidity variable")
+[1] "Outliers found in windspeed and humidity variable"
+> 
+> #Removing Outliers
+> for(i in n_names){
++   print(i)
++   val = bike_sharing_train[,i][ bike_sharing_train[,i] %in% boxplot.stats( bike_sharing_train[,i] )$out  ]
++   bike_sharing_train = bike_sharing_train[which(!bike_sharing_train[,i] %in% val),]
++ }
+[1] "temp"
+[1] "atemp"
+[1] "windspeed"
+[1] "hum"
+> 
+> print("Outliers removed")
+[1] "Outliers removed"
+> 
+> ########################################### Feature Enginnering ########################################################
+> 
+> head(bike_sharing_train,2)
+  instant     dteday season yr mnth holiday weekday workingday weathersit     temp    atemp      hum windspeed casual
+1       1 2011-01-01      1  0    1       0       6          0          2 0.344167 0.363625 0.805833  0.160446    331
+2       2 2011-01-02      1  0    1       0       0          0          2 0.363478 0.353739 0.696087  0.248539    131
+  registered cnt
+1        654 985
+2        670 801
+> 
+> categorical
+[1] "season"     "yr"         "mnth"       "holiday"    "weekday"    "workingday" "weathersit"
+> 
+> # For Month
+> ggplot(data=bike_sharing_train, aes(x=mnth, y=cnt)) +
++   geom_bar(stat="identity",fill = 'steelblue') +
++   ggtitle('Demand of bikes in different months') +
++   theme(plot.title = element_text(hjust = 0.5,size=22))
+> 
+> yr1 = bike_sharing_train[which(bike_sharing_train$yr == 0),]
+> yr2 = bike_sharing_train[which(bike_sharing_train$yr == 1),]
+> 
+> yr1_plot = ggplot(data=yr1, aes(x=mnth, y=cnt)) +
++   geom_bar(stat="identity",fill = 'steelblue') 
+> 
+> yr2_plot = ggplot(data=yr2, aes(x=mnth, y=cnt)) +
++   geom_bar(stat="identity",fill = 'red') 
+> 
+> gridExtra::grid.arrange(yr1_plot,yr2_plot,ncol=2,top=textGrob("Demand of bikes in different months in year 2011 & 2012",gp=gpar(fontsize=22,font=8)) )
+> 
+> # For Weekday
+> ggplot(data=bike_sharing_train, aes(x=weekday, y=cnt)) +
++   geom_bar(stat="identity",fill = 'steelblue') +
++   ggtitle('Demand of bikes in different days of a week') +
++   theme(plot.title = element_text(hjust = 0.5,size=22))
+> 
+> cat("1. From figures we can categorize 5-10th month as one category and rest months as another category.\n2. Similarly,in weekday variables; workindays can be categorized as one and weekends as another category. As in working days demand of bikes found high than weekends.\n")
+1. From figures we can categorize 5-10th month as one category and rest months as another category.
+2. Similarly,in weekday variables; workindays can be categorized as one and weekends as another category. As in working days demand of bikes found high than weekends.
+> 
+> bike_sharing_train$mnth = as.numeric(bike_sharing_train$mnth)
+> bike_sharing_train$weekday = as.numeric(bike_sharing_train$weekday)
+> 
+> # Creating new variables  through binning
+> bike_sharing_train = transform(bike_sharing_train, mnth = case_when(
++   mnth <= 4 ~ 0,
++   mnth >= 11 ~ 0,
++   TRUE   ~ 1
++ ))
+> colnames(bike_sharing_train)[5] <- 'month_binned'
+> 
+> 
+> bike_sharing_train = transform(bike_sharing_train, weekday = case_when(
++   weekday < 2 ~ 0,
++   TRUE   ~ 1
++ ))
+> colnames(bike_sharing_train)[7] <- 'weekday_binned'
+> 
+> categorical[3] <- 'month_binned'
+> categorical[5] <- 'weekday_binned'
+> 
+> ################################################# Feature Selection ##################################################################
+> 
+> # correlation plot for numerical feature
+> corrgram(bike_sharing_train[,numeric], order = FALSE,
++          upper.panel = panel.pie, text.panel = panel.txt,
++          main = "Correlation analyss of numerical variables")
+> 
+> # heatmap plot for numerical features
+> corrplot(cor(bike_sharing_train[,numeric]), method = 'color',title ="Correlation analyss of numerical variables through heatmap" ,col=colorRampPalette(c("blue","red"))(200))
+> 
+> cat("From correlation analysis we found,\n    1.temp and atemp are highly correlated.\n    2.registered and cnt also showing high correlation.\n")
+From correlation analysis we found,
+    1.temp and atemp are highly correlated.
+    2.registered and cnt also showing high correlation.
+> 
+> remove = append(remove,list('atemp','casual','registered'))
+> 
+> # Chi-Square Test
+> cat("Chi-square Test\n1. Null Hypothesis: Two variables are independent\n2. Alternate Hypothesis: Two variables are not independent\n3. p-value < 0.05 , can not accept null hypothesis\nThat means p < 0.05 means two categorical variables are dependent, so we will remove one of variable from that pair to avoid sending the same information to our model through 2 variables")
+Chi-square Test
+1. Null Hypothesis: Two variables are independent
+2. Alternate Hypothesis: Two variables are not independent
+3. p-value < 0.05 , can not accept null hypothesis
+That means p < 0.05 means two categorical variables are dependent, so we will remove one of variable from that pair to avoid sending the same information to our model through 2 variables> 
+> # Create all combinations 
+> factors_paired <- combn(categorical, 2, simplify = F)
+> 
+> for(i in factors_paired){
++   print("############### START ######################")
++   print(i)
++   print(chisq.test(table(bike_sharing_train[,i[1]], bike_sharing_train[,i[2]])))
++   print("################ END #####################")
++ }
+[1] "############### START ######################"
+[1] "season" "yr"    
+
+	Pearson's Chi-squared test
+
+data:  table(bike_sharing_train[, i[1]], bike_sharing_train[, i[2]])
+X-squared = 0.027386, df = 3, p-value = 0.9988
+
+[1] "################ END #####################"
+[1] "############### START ######################"
+[1] "season"       "month_binned"
+
+	Pearson's Chi-squared test
+
+data:  table(bike_sharing_train[, i[1]], bike_sharing_train[, i[2]])
+X-squared = 366.04, df = 3, p-value < 2.2e-16
+
+[1] "################ END #####################"
+[1] "############### START ######################"
+[1] "season"  "holiday"
+
+	Pearson's Chi-squared test
+
+data:  table(bike_sharing_train[, i[1]], bike_sharing_train[, i[2]])
+X-squared = 1.6838, df = 3, p-value = 0.6406
+
+[1] "################ END #####################"
+[1] "############### START ######################"
+[1] "season"         "weekday_binned"
+
+	Pearson's Chi-squared test
+
+data:  table(bike_sharing_train[, i[1]], bike_sharing_train[, i[2]])
+X-squared = 0.12638, df = 3, p-value = 0.9885
+
+[1] "################ END #####################"
+[1] "############### START ######################"
+[1] "season"     "workingday"
+
+	Pearson's Chi-squared test
+
+data:  table(bike_sharing_train[, i[1]], bike_sharing_train[, i[2]])
+X-squared = 0.37014, df = 3, p-value = 0.9463
+
+[1] "################ END #####################"
+[1] "############### START ######################"
+[1] "season"     "weathersit"
+
+	Pearson's Chi-squared test
+
+data:  table(bike_sharing_train[, i[1]], bike_sharing_train[, i[2]])
+X-squared = 16.096, df = 6, p-value = 0.01325
+
+[1] "################ END #####################"
+[1] "############### START ######################"
+[1] "yr"           "month_binned"
+
+	Pearson's Chi-squared test with Yates' continuity correction
+
+data:  table(bike_sharing_train[, i[1]], bike_sharing_train[, i[2]])
+X-squared = 0, df = 1, p-value = 1
+
+[1] "################ END #####################"
+[1] "############### START ######################"
+[1] "yr"      "holiday"
+
+	Pearson's Chi-squared test with Yates' continuity correction
+
+data:  table(bike_sharing_train[, i[1]], bike_sharing_train[, i[2]])
+X-squared = 4.2082e-05, df = 1, p-value = 0.9948
+
+[1] "################ END #####################"
+[1] "############### START ######################"
+[1] "yr"             "weekday_binned"
+
+	Pearson's Chi-squared test with Yates' continuity correction
+
+data:  table(bike_sharing_train[, i[1]], bike_sharing_train[, i[2]])
+X-squared = 3.2891e-31, df = 1, p-value = 1
+
+[1] "################ END #####################"
+[1] "############### START ######################"
+[1] "yr"         "workingday"
+
+	Pearson's Chi-squared test with Yates' continuity correction
+
+data:  table(bike_sharing_train[, i[1]], bike_sharing_train[, i[2]])
+X-squared = 0.0030301, df = 1, p-value = 0.9561
+
+[1] "################ END #####################"
+[1] "############### START ######################"
+[1] "yr"         "weathersit"
+
+	Pearson's Chi-squared test
+
+data:  table(bike_sharing_train[, i[1]], bike_sharing_train[, i[2]])
+X-squared = 3.3938, df = 2, p-value = 0.1832
+
+[1] "################ END #####################"
+[1] "############### START ######################"
+[1] "month_binned" "holiday"     
+
+	Pearson's Chi-squared test with Yates' continuity correction
+
+data:  table(bike_sharing_train[, i[1]], bike_sharing_train[, i[2]])
+X-squared = 0.9672, df = 1, p-value = 0.3254
+
+[1] "################ END #####################"
+[1] "############### START ######################"
+[1] "month_binned"   "weekday_binned"
+
+	Pearson's Chi-squared test with Yates' continuity correction
+
+data:  table(bike_sharing_train[, i[1]], bike_sharing_train[, i[2]])
+X-squared = 0.00027184, df = 1, p-value = 0.9868
+
+[1] "################ END #####################"
+[1] "############### START ######################"
+[1] "month_binned" "workingday"  
+
+	Pearson's Chi-squared test with Yates' continuity correction
+
+data:  table(bike_sharing_train[, i[1]], bike_sharing_train[, i[2]])
+X-squared = 0.2121, df = 1, p-value = 0.6451
+
+[1] "################ END #####################"
+[1] "############### START ######################"
+[1] "month_binned" "weathersit"  
+
+	Pearson's Chi-squared test
+
+data:  table(bike_sharing_train[, i[1]], bike_sharing_train[, i[2]])
+X-squared = 2.3339, df = 2, p-value = 0.3113
+
+[1] "################ END #####################"
+[1] "############### START ######################"
+[1] "holiday"        "weekday_binned"
+
+	Pearson's Chi-squared test with Yates' continuity correction
+
+data:  table(bike_sharing_train[, i[1]], bike_sharing_train[, i[2]])
+X-squared = 2.5258, df = 1, p-value = 0.112
+
+[1] "################ END #####################"
+[1] "############### START ######################"
+[1] "holiday"    "workingday"
+
+	Pearson's Chi-squared test with Yates' continuity correction
+
+data:  table(bike_sharing_train[, i[1]], bike_sharing_train[, i[2]])
+X-squared = 43.789, df = 1, p-value = 3.658e-11
+
+[1] "################ END #####################"
+[1] "############### START ######################"
+[1] "holiday"    "weathersit"
+
+	Pearson's Chi-squared test
+
+data:  table(bike_sharing_train[, i[1]], bike_sharing_train[, i[2]])
+X-squared = 1.0259, df = 2, p-value = 0.5987
+
+[1] "################ END #####################"
+[1] "############### START ######################"
+[1] "weekday_binned" "workingday"    
+
+	Pearson's Chi-squared test with Yates' continuity correction
+
+data:  table(bike_sharing_train[, i[1]], bike_sharing_train[, i[2]])
+X-squared = 257.62, df = 1, p-value < 2.2e-16
+
+[1] "################ END #####################"
+[1] "############### START ######################"
+[1] "weekday_binned" "weathersit"    
+
+	Pearson's Chi-squared test
+
+data:  table(bike_sharing_train[, i[1]], bike_sharing_train[, i[2]])
+X-squared = 3.773, df = 2, p-value = 0.1516
+
+[1] "################ END #####################"
+[1] "############### START ######################"
+[1] "workingday" "weathersit"
+
+	Pearson's Chi-squared test
+
+data:  table(bike_sharing_train[, i[1]], bike_sharing_train[, i[2]])
+X-squared = 2.4498, df = 2, p-value = 0.2938
+
+[1] "################ END #####################"
+Warning messages:
+1: In chisq.test(table(bike_sharing_train[, i[1]], bike_sharing_train[,  :
+  Chi-squared approximation may be incorrect
+2: In chisq.test(table(bike_sharing_train[, i[1]], bike_sharing_train[,  :
+  Chi-squared approximation may be incorrect
+3: In chisq.test(table(bike_sharing_train[, i[1]], bike_sharing_train[,  :
+  Chi-squared approximation may be incorrect
+4: In chisq.test(table(bike_sharing_train[, i[1]], bike_sharing_train[,  :
+  Chi-squared approximation may be incorrect
+> 
+> cat("Dependecy:\nSeason with Weathersit-Month\nHoliday with Worikingday-Weekday\nWorkingday with Weekday-Holiday\n")
+Dependecy:
+Season with Weathersit-Month
+Holiday with Worikingday-Weekday
+Workingday with Weekday-Holiday
+> 
+> # finding important features
+> data = bike_sharing_train[,-c(1,2,14,15)]
+> importances <- randomForest(cnt ~ ., data = data,
++                             ntree = 200, keep.forest = FALSE, importance = TRUE)
+> 
+> important_features <- data.frame(importance(importances, type = 1))
+> 
+> remove = append(remove,'holiday')
+> 
+> # Multi-colinearity test
+> # vif = 1 / (1-R2)
+> vif(bike_sharing_train[,c(10,11,12,13)],)
+  Variables       VIF
+1      temp 63.325618
+2     atemp 63.933104
+3       hum  1.056525
+4 windspeed  1.101885
+> 
+> # After removing atemp variable 
+> vif(bike_sharing_train[,c(10,12,13)],)
+  Variables      VIF
+1      temp 1.028047
+2       hum 1.051835
+3 windspeed 1.058924
+> 
+> # Dummy for categorical
+> 
+> season_dummy = dummy(bike_sharing_train$season, sep = "_")
+Warning message:
+In model.matrix.default(~x - 1, model.frame(~x - 1), contrasts = FALSE) :
+  non-list contrasts argument ignored
+> weather_dummy = dummy(bike_sharing_train$weathersit, sep ="_" )
+Warning message:
+In model.matrix.default(~x - 1, model.frame(~x - 1), contrasts = FALSE) :
+  non-list contrasts argument ignored
+> bike_sharing_train = cbind(bike_sharing_train,season_dummy)
+> bike_sharing_train = cbind(bike_sharing_train,weather_dummy)
+> bike_sharing_train[,c("season","weathersit","season_1","weathersit_1")] = NULL
+> 
+> remove
+[[1]]
+[1] "instant"
+
+[[2]]
+[1] "dteday"
+
+[[3]]
+[1] "atemp"
+
+[[4]]
+[1] "casual"
+
+[[5]]
+[1] "registered"
+
+[[6]]
+[1] "holiday"
+
+> remove = unlist(remove,use.names=FALSE)
+> 
+> # Removing unwanted variables
+> bike_sharing_train[,remove] = NULL
+> dim(bike_sharing_train)
+[1] 717  13
+> 
+> cnt = bike_sharing_train[,"cnt"]
+> bike_sharing_train$cnt = NULL
+> 
+> bike_sharing_train = cbind(bike_sharing_train,cnt)
+> 
+> 
+> ##########################################################################################################################################
+> rmExcept(c("bike_sharing_train"))
+Removed the following objects:
+
+all_bar_plot, categorical, check_count_of_category, cnt, data, factors_paired, gn1, gn2, gn3, gn4, i, importances, important_features, missing_values, n_names, numeric, remove, season_dummy, val, weather_dummy, yr1, yr1_plot, yr2, yr2_plot
+> ################################################# Model Development ##################################################################
+> 
+> fit_N_predict <- function(method, train_data, test_data,bike, model_code = ""){
++   model_fit <- caret::train(cnt~., data = train_data, method = method)
++   
++   y_pred <- predict(model_fit, train_data[,-13])
++   print("================================")
++   print("Score on training data: ")
++   print(caret::R2(y_pred, train_data[,13]))
++   
++   y_pred <- predict(model_fit, test_data[,-13])
++   print("================================")
++   print("Score on test dataset: ")
++   print(caret::R2(y_pred, test_data[,13]))
++   
++   print("================================")
++   
++   if(model_code == 'lm'){
++     print(summary(model_fit))
++   }
++ }
+> 
+> cross_validation <- function(method, bike){
++   ten_folds = createFolds(bike$cnt, k = 10)
++   ten_cv = lapply(ten_folds, function(fold) {
++     training_fold = bike[-fold, ]
++     test_fold = bike[fold, ]
++     model_fit <- caret::train(cnt~., data = training_fold, method = method)
++     y_pred <- predict(model_fit, test_fold[,-13])
++     return(as.numeric(caret::R2(y_pred, test_fold[,13]))) 
++   })
++   sum = 0
++   for(i in ten_cv){
++     sum = sum + as.numeric(i)
++   }
++   print("Mean of 10 cross validation scores = ")
++   
++   print(sum/10)
++ }
+> 
+> set.seed(42)
+> split = sample.split(bike_sharing_train$cnt, SplitRatio = 0.80)
+> train_set = subset(bike_sharing_train, split == TRUE)
+> test_set = subset(bike_sharing_train, split == FALSE)
+> X_train = train_set[,1:12]
+> y_train = train_set[,13]
+> X_test = test_set[,1:12]
+> y_test = test_set[,13]
+> 
+> 
+> # Model Development
+> 
+> 
+> # 1. LINEAR REGRESSION
+> print("=============== LINEAR REGRESSION =================")
+[1] "=============== LINEAR REGRESSION ================="
+> 
+> fit_N_predict('lm', train_set, test_set,bike_sharing_train, model_code="lm")
+[1] "================================"
+[1] "Score on training data: "
+[1] 0.814424
+[1] "================================"
+[1] "Score on test dataset: "
+[1] 0.8674165
+[1] "================================"
+
+Call:
+lm(formula = .outcome ~ ., data = dat)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-4039.5  -385.3    67.4   490.1  3417.5 
+
+Coefficients:
+               Estimate Std. Error t value Pr(>|t|)    
+(Intercept)     1658.09     286.02   5.797 1.13e-08 ***
+yr1             2034.06      71.49  28.453  < 2e-16 ***
+month_binned     512.64     123.71   4.144 3.94e-05 ***
+weekday_binned   347.15     125.15   2.774  0.00573 ** 
+workingday1      -26.11      93.14  -0.280  0.77932    
+temp            4159.56     426.46   9.754  < 2e-16 ***
+hum            -1400.07     355.36  -3.940 9.19e-05 ***
+windspeed      -2525.55     540.70  -4.671 3.76e-06 ***
+season_2        1037.28     130.76   7.933 1.17e-14 ***
+season_3         716.30     172.05   4.163 3.63e-05 ***
+season_4        1401.57     114.19  12.274  < 2e-16 ***
+weathersit_2    -421.70      93.58  -4.506 8.04e-06 ***
+weathersit_3   -1919.15     246.71  -7.779 3.54e-14 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 836.4 on 560 degrees of freedom
+Multiple R-squared:  0.8144,	Adjusted R-squared:  0.8104 
+F-statistic: 204.8 on 12 and 560 DF,  p-value: < 2.2e-16
+
+> cross_validation('lm',bike_sharing_train)
+[1] "Mean of 10 cross validation scores = "
+[1] 0.819933
+> 
+> # 2. KNN
+> print("=============== KNN =================")
+[1] "=============== KNN ================="
+> fit_N_predict('knn', train_set, test_set,bike_sharing_train)
+[1] "================================"
+[1] "Score on training data: "
+[1] 0.8527143
+[1] "================================"
+[1] "Score on test dataset: "
+[1] 0.8448684
+[1] "================================"
+> cross_validation('knn',bike_sharing_train)
+[1] "Mean of 10 cross validation scores = "
+[1] 0.8050063
+> 
+> 
+> # 3. SVM
+> print("=============== SVM  =================")
+[1] "=============== SVM  ================="
+> fit_N_predict('svmLinear3', train_set, test_set,bike_sharing_train)
+[1] "================================"
+[1] "Score on training data: "
+[1] 0.8138419
+[1] "================================"
+[1] "Score on test dataset: "
+[1] 0.8672844
+[1] "================================"
+There were 50 or more warnings (use warnings() to see the first 50)
+> cross_validation('svmLinear3',bike_sharing_train)
+[1] "Mean of 10 cross validation scores = "
+[1] 0.8192611
+There were 50 or more warnings (use warnings() to see the first 50)
+> 
+> 
+> # 4. DECISION TREE
+> print("=============== DECISION TREE  =================")
+[1] "=============== DECISION TREE  ================="
+> fit_N_predict('rpart2', train_set, test_set,bike_sharing_train)
+[1] "================================"
+[1] "Score on training data: "
+[1] 0.7880527
+[1] "================================"
+[1] "Score on test dataset: "
+[1] 0.8006438
+[1] "================================"
+> cross_validation('rpart2',bike_sharing_train)
+[1] "Mean of 10 cross validation scores = "
+[1] 0.7714838
+> 
+> 
+> # 5. RANDOM FOREST
+> print("=============== RANDOM FOREST  =================")
+[1] "=============== RANDOM FOREST  ================="
+> fit_N_predict('rf', train_set, test_set,bike_sharing_train)
+[1] "================================"
+[1] "Score on training data: "
+[1] 0.9737462
+[1] "================================"
+[1] "Score on test dataset: "
+[1] 0.9092363
+[1] "================================"
+> cross_validation('rf',bike_sharing_train)
+[1] "Mean of 10 cross validation scores = "
+[1] 0.8825648
+> 
+> 
+> # 6. XGBoost
+> print("=============== XGBoost  =================")
+[1] "=============== XGBoost  ================="
+> fit_N_predict('xgbTree', train_set, test_set,bike_sharing_train)
+[1] "================================"
+[1] "Score on training data: "
+[1] 0.9165505
+[1] "================================"
+[1] "Score on test dataset: "
+[1] 0.8979209
+[1] "================================"
+> print('######################### Tuning Random Forest #########################')
+[1] "######################### Tuning Random Forest #########################"
+> 
+> control <- trainControl(method="cv", number=10, repeats=3)
+Warning message:
+`repeats` has no meaning for this resampling method. 
+> model_fit <- caret::train(cnt~., data = train_set, method = "rf",trControl = control)
+> model_fit$bestTune
+  mtry
+2    7
+> y_pred <- predict(model_fit, test_set[,-13])
+> print(caret::R2(y_pred, test_set[,13]))
+[1] 0.9085747
+> 
+> print('######################### Tuning XGBoost #########################')
+[1] "######################### Tuning XGBoost #########################"
+> 
+> 
+> control <- trainControl(method="cv", number=10, repeats=3)
+Warning message:
+`repeats` has no meaning for this resampling method. 
+> model_fit <- caret::train(cnt~., data = train_set, method = "xgbTree",trControl = control)
+> model_fit$bestTune
+   nrounds max_depth eta gamma colsample_bytree min_child_weight subsample
+49      50         3 0.3     0              0.8                1      0.75
+> y_pred <- predict(model_fit, test_set[,-13])
+> print(caret::R2(y_pred, test_set[,13]))
+[1] 0.9040358
+> 
